@@ -313,10 +313,87 @@ static void chksum_ones_complement_udp_long(void)
 	CU_ASSERT(res == UDP_LONG_CHKSUM);
 }
 
+static uint16_t chksum_rfc1071(const void *p, uint32_t len)
+{
+	uint32_t sum = 0;
+	const uint16_t *data = p;
+
+	while (len > 1) {
+		sum += *data++;
+		len -= 2;
+	}
+
+	/* Add left-over byte, if any */
+	if (len > 0) {
+		uint16_t left_over = 0;
+
+		*(uint8_t *)&left_over = *(const uint8_t *)data;
+		sum += left_over;
+	}
+
+	/* Fold 32-bit sum to 16 bits */
+	while (sum >> 16)
+		sum = (sum & 0xffff) + (sum >> 16);
+
+	return sum;
+}
+
+/*
+ * 64-bit KISS RNGs
+ * George Marsaglia
+ * https://www.thecodingforums.com/threads/64-bit-kiss-rngs.673657
+ */
+
+static unsigned long long x = 1234567890987654321ULL, c = 123456123456123456ULL,
+			  y = 362436362436362436ULL, z = 1066149217761810ULL, t;
+
+#define MWC (t = (x << 58) + c, c = (x >> 6), x += t, c += (x < t), x)
+#define XSH (y ^= (y << 13), y ^= (y >> 17), y ^= (y << 43))
+#define CNG (z = 6906969069LL * z + 1234567)
+#define KISS (MWC + XSH + CNG)
+
+/*
+ * Test relatively short pseudorandom data. This test is trying to maximize the
+ * number of checksums computed.
+ */
+static void chksum_ones_complement_pseudorandom(void)
+{
+	const int size = (1 << 15);
+	const int max_len = 64;
+	const unsigned long page = 4096;
+	/*
+	 * Allocate two extra pages, one for alignment and one for starting
+	 * checksumming near the end.
+	 */
+	uint8_t *buf = (uint8_t *)malloc(size + page * 2);
+	uint8_t *data = (uint8_t *)(((uintptr_t)buf + (page - 1)) & ~(page - 1));
+
+	for (int i = 0; i < (size + (int)page) / 8; i++)
+		((uint64_t *)(uintptr_t)data)[i] = KISS;
+
+	for (int i = 0; i < 1000000; i++) {
+		/* Align p to two bytes. */
+		uint8_t *p = data + (KISS & (size - 1) & ~1UL);
+		int len = (KISS & (max_len - 1)) + 1;
+		/*
+		 * Put some fresh random bits at the start of the the data to
+		 * be checksummed.
+		 */
+		uint64_t rnd = KISS;
+
+		memcpy(p, &rnd, sizeof(rnd));
+		CU_ASSERT(chksum_rfc1071(p, len) ==
+			  odp_chksum_ones_comp16(p, len));
+	}
+
+	free(buf);
+}
+
 odp_testinfo_t chksum_suite[] = {
 	ODP_TEST_INFO(chksum_ones_complement_ip),
 	ODP_TEST_INFO(chksum_ones_complement_udp),
 	ODP_TEST_INFO(chksum_ones_complement_udp_long),
+	ODP_TEST_INFO(chksum_ones_complement_pseudorandom),
 	ODP_TEST_INFO_NULL,
 };
 
