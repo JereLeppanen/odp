@@ -15,11 +15,16 @@ extern "C" {
 
 /** @cond _ODP_HIDE_FROM_DOXYGEN_ */
 
+#define _ODP_PRINT_BUF_LEN 1024
+
 typedef struct {
 	int thr;
 	int cpu;
 	odp_thread_type_t type;
 	odp_log_func_t log_fn;
+	odp_bool_t print_buf_ena;
+	int print_buf_pos;
+	uint8_t print_buf[_ODP_PRINT_BUF_LEN];
 
 } _odp_thread_state_t;
 

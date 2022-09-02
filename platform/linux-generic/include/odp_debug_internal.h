@@ -24,6 +24,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,12 +38,71 @@ extern "C" {
  * level 0 to N. */
 #define CONFIG_DEBUG_LEVEL 0
 
+static inline void _odp_print_buf_enable(void)
+{
+	_odp_this_thread->print_buf_ena = true;
+}
+
+static inline void _odp_print_buf_disable(void)
+{
+	_odp_this_thread->print_buf_ena = false;
+}
+
+static inline void _odp_print_buf(odp_log_level_t level, const char *fmt, ...)
+{
+	int r;
+	va_list args;
+	_odp_thread_state_t *t = _odp_this_thread;
+	const int remaining = _ODP_PRINT_BUF_LEN - t->print_buf_pos;
+	const uint8_t *p = t->print_buf + t->print_buf_pos;
+
+	va_start(args, fmt);
+	r = vsnprintf(p, remaining, fmt, args);
+	va_end(args);
+
+	if (r < 0)
+		return;
+
+	if (r >= remaining) {
+		/*
+		 * Ran out of buffer space, current print was truncated. Insert
+		 * a newline so that we get to flush the buffer.
+		 */
+		t->print_buf[_ODP_PRINT_BUF_LEN - 2] = '\n';
+		r = remaining;
+		*((volatile int *)0) = 0;
+	}
+
+	t->print_buf_pos += r;
+
+	uint8_t *newline = strrchr(p, '\n');
+
+	if (newline) {
+		const char *fmt = "%s\n";
+		const int len = t->print_buf_pos - (newline - t->print_buf) - 1;
+
+		*newline = 0;
+
+		if (t && t->log_fn)
+			t->log_fn(level, fmt, t->print_buf);
+		else
+			odp_global_ro.log_fn(level, fmt, t->print_buf);
+
+		memmove(t->print_buf, newline + 1, len);
+		t->print_buf_pos = len;
+	}
+}
+
 #define _ODP_LOG_FN(level, fmt, ...) \
 	do { \
-		if (_odp_this_thread && _odp_this_thread->log_fn) \
-			_odp_this_thread->log_fn(level, fmt, ##__VA_ARGS__); \
-		else \
-			odp_global_ro.log_fn(level, fmt, ##__VA_ARGS__); \
+		if (_odp_this_thread && (1/*force*/ || _odp_this_thread->print_buf_ena)) { \
+			_odp_print_buf(level, fmt, ##__VA_ARGS__); \
+		} else { \
+			if (_odp_this_thread && _odp_this_thread->log_fn) \
+				_odp_this_thread->log_fn(level, fmt, ##__VA_ARGS__); \
+			else \
+				odp_global_ro.log_fn(level, fmt, ##__VA_ARGS__); \
+		} \
 	} while (0)
 
 /**
