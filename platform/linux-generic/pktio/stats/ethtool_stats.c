@@ -29,10 +29,17 @@
 
 static struct ethtool_gstrings *get_stringset(int fd, struct ifreq *ifr)
 {
+#if __GNUC__ >= 13
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+#endif
 	struct {
 		struct ethtool_sset_info hdr;
 		uint32_t buf[1]; /* overlaps with hdr.data[] */
 	} sset_info;
+#if __GNUC__ >= 13
+#pragma GCC diagnostic pop
+#endif
 	struct ethtool_drvinfo drvinfo;
 	uint32_t len;
 	struct ethtool_gstrings *strings;
