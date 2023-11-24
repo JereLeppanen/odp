@@ -2870,7 +2870,7 @@ static void timer_test_periodic(odp_queue_type_t queue_type, int use_first, int 
 	odp_timer_periodic_start_t start_param;
 	odp_queue_t queue;
 	odp_timeout_t tmo;
-	odp_event_t ev = ODP_EVENT_INVALID;
+	odp_event_t ev = ODP_EVENT_INVALID, ev_main = ODP_EVENT_INVALID, ev_last = ODP_EVENT_INVALID;
 	odp_timer_t timer;
 	odp_time_t t1, t2;
 	uint64_t tick, cur_tick, period_ns, duration_ns, diff_ns, offset_ns;
@@ -2972,7 +2972,7 @@ static void timer_test_periodic(odp_queue_type_t queue_type, int use_first, int 
 
 	odp_pool_param_init(&pool_param);
 	pool_param.type    = ODP_POOL_TIMEOUT;
-	pool_param.tmo.num = 1;
+	pool_param.tmo.num = 2;
 
 	pool = odp_pool_create("timeout_pool", &pool_param);
 	CU_ASSERT_FATAL(pool != ODP_POOL_INVALID);
@@ -3006,10 +3006,14 @@ static void timer_test_periodic(odp_queue_type_t queue_type, int use_first, int 
 
 		if (!reuse_event || round == 0) {
 			tmo = odp_timeout_alloc(pool);
-			ev  = odp_timeout_to_event(tmo);
+			ev_main = odp_timeout_to_event(tmo);
+			ev = ev_main;
+			tmo = odp_timeout_alloc(pool);
+			ev_last = odp_timeout_to_event(tmo);
 		}
 
 		CU_ASSERT_FATAL(ev != ODP_EVENT_INVALID);
+		CU_ASSERT_FATAL(ev_last != ODP_EVENT_INVALID);
 		cur_tick = odp_timer_current_tick(timer_pool);
 		tick = cur_tick + odp_timer_ns_to_tick(timer_pool, offset_ns);
 
@@ -3018,6 +3022,7 @@ static void timer_test_periodic(odp_queue_type_t queue_type, int use_first, int 
 
 		start_param.freq_multiplier = multiplier;
 		start_param.tmo_ev = ev;
+		start_param.last_tmo_ev = ev_last;
 
 		ODPH_DBG("Periodic timer start:\n");
 		ODPH_DBG("  Current tick:    %" PRIu64 "\n", cur_tick);
@@ -3114,7 +3119,8 @@ static void timer_test_periodic(odp_queue_type_t queue_type, int use_first, int 
 				done = 1;
 				if (reuse_event && round < rounds - 1)
 					break;
-				odp_event_free(ev);
+				odp_event_free(ev_main);
+				odp_event_free(ev_last);
 			}
 		}
 
