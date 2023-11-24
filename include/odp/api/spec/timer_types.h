@@ -508,6 +508,14 @@ typedef struct odp_timer_periodic_start_t {
 	 */
 	odp_event_t tmo_ev;
 
+	/** Last timeout event
+	 *
+	 *  This event is the last event enqueued to the destination queue after the timer has been
+	 *  cancelled. The event type must be ODP_EVENT_TIMEOUT. This event and tmo_ev must be
+	 *  different events.
+	 */
+	odp_event_t last_tmo_ev;
+
 } odp_timer_periodic_start_t;
 
 /**

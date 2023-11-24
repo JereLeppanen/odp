@@ -357,8 +357,9 @@ int odp_timer_periodic_start(odp_timer_t timer, const odp_timer_periodic_start_t
  * Application must not use the event anymore after this. A greater than zero return value
  * indicates timeout events from a cancelled timer. These events may not arrive at the
  * requested interval, but are used to finalize the timer cancel request. Return value of 2 marks
- * the last event from a cancelled timer. After receiving it application may free the timer and
- * the timeout event.
+ * the last event from a cancelled timer. After receiving it application may free the timer,
+ * the timeout event (which is odp_timer_periodic_start_t.last_tmo_ev) and the other timeout event
+ * (odp_timer_periodic_start_t.tmo_ev).
  *
  * @param timer    Periodic timer
  * @param tmo_ev   Timeout event that was received from the periodic timer
