@@ -165,6 +165,9 @@ typedef struct {
 	/* Used for free list of timers */
 	uint32_t next_free;
 
+	/* Periodic timer last timeout event */
+	odp_event_t last_tmo_ev;
+
 } _odp_timer_t;
 
 typedef struct timer_pool_s {
@@ -1679,6 +1682,7 @@ int odp_timer_periodic_start(odp_timer_t timer, const odp_timer_periodic_start_t
 	uint64_t cur_tick = current_nsec(tp);
 	uint32_t idx = handle_to_idx(timer, tp);
 	odp_event_t tmo_ev = start_param->tmo_ev;
+	odp_event_t last_tmo_ev = start_param->last_tmo_ev;
 	_odp_timer_t *tim = &tp->timers[idx];
 	uint64_t multiplier = start_param->freq_multiplier;
 	double freq = multiplier * tp->base_freq;
@@ -1694,7 +1698,8 @@ int odp_timer_periodic_start(odp_timer_t timer, const odp_timer_periodic_start_t
 		return ODP_TIMER_FAIL;
 	}
 
-	if (odp_unlikely(odp_event_type(tmo_ev) != ODP_EVENT_TIMEOUT)) {
+	if (odp_unlikely(odp_event_type(tmo_ev) != ODP_EVENT_TIMEOUT) ||
+	    odp_unlikely(odp_event_type(last_tmo_ev) != ODP_EVENT_TIMEOUT)) {
 		_ODP_ERR("Event type is not timeout\n");
 		return ODP_TIMER_FAIL;
 	}
@@ -1715,6 +1720,7 @@ int odp_timer_periodic_start(odp_timer_t timer, const odp_timer_periodic_start_t
 	tim->periodic_ticks = period_ns;
 	tim->periodic_ticks_frac = (period_ns_dbl - period_ns) * ACC_SIZE;
 	tim->periodic_ticks_frac_acc = 0;
+	tim->last_tmo_ev = last_tmo_ev;
 	abs_tick = start_param->first_tick;
 
 	if (abs_tick) {
@@ -1828,12 +1834,10 @@ int odp_timer_periodic_cancel(odp_timer_t hdl)
 	tim->periodic_ticks |= PERIODIC_CANCELLED;
 
 	if (ev != ODP_EVENT_INVALID) {
-		/* Timer cancelled and timeout returned. Enqueue tmo, ack call will flag
-		 * it as the last event. */
-		if (odp_unlikely(odp_queue_enq(tim->queue, ev))) {
-			_ODP_ERR("Failed to enqueue timeout event\n");
-			_odp_event_free(ev);
-			return -1;
+		/* Timer cancelled and timeout returned. Enqueue the last timeout. */
+		if (odp_unlikely(odp_queue_enq(tim->queue, tim->last_tmo_ev))) {
+			_odp_event_free(tim->last_tmo_ev);
+			_ODP_ABORT("Failed to enqueue timeout event\n");
 		}
 	}
 
