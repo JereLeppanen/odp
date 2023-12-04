@@ -116,6 +116,17 @@ typedef struct {
 	/** Timeout resolution in nanoseconds */
 	uint64_t res_ns;
 
+	/**
+	 * Maximum number of timeouts
+	 *
+	 * An implementation may use more timeouts in addition to the timeout allocated by
+	 * application and provided in odp_timer_periodic_start(). This parameter is the maximum
+	 * number of timeouts per timer that the implementation may use, including the timeout
+	 * provided in odp_timer_periodic_start(). Therefore, the returned value is always at
+	 * least 1. The input value is ignored.
+	 */
+	uint32_t max_timeouts;
+
 } odp_timer_periodic_capability_t;
 
 /**
@@ -503,8 +514,13 @@ typedef struct odp_timer_periodic_start_t {
 
 	/** Timeout event
 	 *
-	 *  This event is enqueued to the destination queue when the timer expires. The event type
-	 *  must be ODP_EVENT_TIMEOUT.
+	 *  This event, or a copy of it, is enqueued to the destination queue when the timer
+	 *  expires. The event type must be ODP_EVENT_TIMEOUT.
+	 *
+	 *  If the queued event is a copy, it is allocated from the same pool as the original event,
+	 *  and has the same user pointer value and user area contents. Application must ensure that
+	 *  there are enough timeouts in the pool.
+	 *  @see odp_timer_periodic_capability_t::max_timeouts
 	 */
 	odp_event_t tmo_ev;
 
