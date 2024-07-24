@@ -25,7 +25,6 @@ uint16_t _odp_parse_eth(packet_parser_t *prs, const uint8_t **parseptr,
 {
 	uint16_t ethtype;
 	const _odp_ethhdr_t *eth;
-	uint16_t macaddr0, macaddr2, macaddr4;
 	const _odp_vlanhdr_t *vlan;
 	_odp_packet_input_flags_t input_flags;
 
@@ -39,18 +38,18 @@ uint16_t _odp_parse_eth(packet_parser_t *prs, const uint8_t **parseptr,
 	if (odp_unlikely(frame_len - *offset > _ODP_ETH_LEN_MAX))
 		input_flags.jumbo = 1;
 
-	/* Handle Ethernet broadcast/multicast addresses */
-	macaddr0 = odp_be_to_cpu_16(*((const odp_una_u16_t *)eth));
-	if (odp_unlikely((macaddr0 & 0x0100) == 0x0100))
+	/*
+	 * Ethernet broadcast/multicast. The least significant bit of the first
+	 * octet of the destination address.
+	 */
+	if (odp_unlikely(*((const uint8_t *)eth) & 1))
 		input_flags.eth_mcast = 1;
 
-	if (odp_unlikely(macaddr0 == 0xffff)) {
-		macaddr2 = odp_be_to_cpu_16(*((const odp_una_u16_t *)eth + 1));
-		macaddr4 = odp_be_to_cpu_16(*((const odp_una_u16_t *)eth + 2));
-
-		if ((macaddr2 == 0xffff) && (macaddr4 == 0xffff))
-			input_flags.eth_bcast = 1;
-	}
+	/*
+	 * Ethernet broadcast. All bits of the destination address set.
+	 */
+	if (odp_unlikely(!memcmp(eth, "\xff\xff\xff\xff\xff\xff", _ODP_ETHADDR_LEN)))
+		input_flags.eth_bcast = 1;
 
 	/* Get Ethertype */
 	ethtype = odp_be_to_cpu_16(eth->type);
@@ -65,7 +64,7 @@ uint16_t _odp_parse_eth(packet_parser_t *prs, const uint8_t **parseptr,
 			ethtype = 0;
 			goto error;
 		}
-		ethtype = odp_be_to_cpu_16(*((const odp_una_u16_t *)(*parseptr + 6)));
+		ethtype = odp_be_to_cpu_16(*((const odp_una_u16_t ODP_MAY_ALIAS *)(*parseptr + 6)));
 		*offset   += 8;
 		*parseptr += 8;
 	}
