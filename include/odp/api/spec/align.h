@@ -35,6 +35,11 @@ extern "C" {
  */
 
 /**
+ * @def ODP_MAY_ALIAS
+ * Type/variable may alias another type
+ */
+
+/**
  * @def ODP_OFFSETOF
  * Returns offset of member in type
  */

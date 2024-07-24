@@ -27,6 +27,8 @@ extern "C" {
 
 #define ODP_PACKED __attribute__((__packed__))
 
+#define ODP_MAY_ALIAS __attribute__((__may_alias__))
+
 #define ODP_OFFSETOF(type, member) __builtin_offsetof(type, member)
 
 #define ODP_FIELD_SIZEOF(type, member) sizeof(((type *)0)->member)
