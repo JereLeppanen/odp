@@ -184,7 +184,7 @@ static inline int odph_process_l3_hdr(odp_packet_t odp_pkt,
 	swap_buf_t      swap_buf;
 	uint32_t        l3_offset, l4_offset, l3_hdrs_len, addrs_len;
 	uint32_t        protocol, l3_len, l4_len, idx, ipv6_payload_len, sum;
-	odp_una_u16_t  *addrs_ptr;
+	odp_una_u16_t ODP_MAY_ALIAS *addrs_ptr;
 	uint32_t hdr_len = 0;
 
 	/* The following computation using the l3 and l4 offsets handles both
