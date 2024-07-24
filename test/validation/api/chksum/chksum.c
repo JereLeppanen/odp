@@ -314,7 +314,7 @@ static void chksum_ones_complement_udp_long(void)
 static uint16_t chksum_rfc1071(const void *p, uint32_t len)
 {
 	uint32_t sum = 0;
-	const uint16_t *data = p;
+	const uint16_t ODP_MAY_ALIAS *data = p;
 
 	while (len > 1) {
 		sum += *data++;
