@@ -55,7 +55,7 @@ do { \
 				 ##__VA_ARGS__); \
 	} \
 	if (level == ODPH_LOG_ABORT) \
-		abort(); \
+		odp_abort_fn_get()(); \
 } while (0)
 
 /**
