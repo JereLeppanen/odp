@@ -205,8 +205,7 @@ static void init_test_log_fn_get(void)
 	odp_log_func_t fn;
 
 	fn = odp_log_fn_get();
-	CU_ASSERT(fn != NULL);
-	CU_ASSERT(fn != &my_log_thread_func);
+	CU_ASSERT(fn == NULL);
 
 	odp_init_param_init(&param);
 
