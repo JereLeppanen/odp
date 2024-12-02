@@ -423,9 +423,9 @@ odp_log_func_t odp_log_fn_get(void);
  * May be called even if ODP is not initialized.
  *
  * Returns the abort function specified in odp_init_global(). If no abort
- * function was specified in odp_init_global(), or if odp_init_global() has not
- * been called yet, returns the default or override abort function (see
- * odp_override_abort()). Always returns a valid abort function, never NULL.
+ * function was specified in odp_init_global(), returns the default or override
+ * abort function (see odp_override_abort()). Returns NULL if ODP is not
+ * initialized.
  *
  * @return Abort function
  */
