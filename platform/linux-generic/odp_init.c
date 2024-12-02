@@ -737,10 +737,7 @@ odp_log_func_t odp_log_fn_get(void)
 
 odp_abort_func_t odp_abort_fn_get(void)
 {
-	if (_odp_abort_fn)
-		return _odp_abort_fn;
-
-	return odp_override_abort;
+	return _odp_abort_fn;
 }
 
 int odp_instance(odp_instance_t *instance)
