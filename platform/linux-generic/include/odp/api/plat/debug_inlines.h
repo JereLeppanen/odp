@@ -41,10 +41,8 @@ static inline odp_log_func_t _odp_log_fn_get(void)
 {
 	if (_odp_this_thread && _odp_this_thread->log_fn)
 		return _odp_this_thread->log_fn;
-	else if (_odp_log_fn)
-		return _odp_log_fn;
-	else
-		return odp_override_log;
+
+	return _odp_log_fn;
 }
 
 #define _ODP_LOG_FN(level, ...) \
