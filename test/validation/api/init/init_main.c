@@ -121,8 +121,7 @@ static void init_test_abort_fn_get(void)
 	odp_abort_func_t fn;
 
 	fn = odp_abort_fn_get();
-	CU_ASSERT(fn != NULL);
-	CU_ASSERT(fn != &my_abort_func);
+	CU_ASSERT(fn == NULL);
 
 	odp_init_param_init(&param);
 	param.abort_fn = &my_abort_func;
